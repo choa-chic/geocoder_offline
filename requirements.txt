@@ -1,0 +1,10 @@
+pandas
+
+# db
+psycopg
+pyodbc
+duckdb
+
+# analysis and examples
+ipykernel
+nbconvert
