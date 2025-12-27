@@ -1,0 +1,3 @@
+"""
+methods for creating metaphones
+"""
