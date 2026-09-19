@@ -63,11 +63,36 @@ Design is borrowed from `degauss-org/geocoder`, `geocommons/geocoder`, and
 `postgis/postgis`. Those are references, not dependencies to patch. Do not open
 pull requests against them from work here.
 
-## Testing
+## Quality gates
+
+Pre-commit hooks and CI land before any code migrates, not after. The
+expensive mistake this repository can make is committing a real address to a
+public repository, and that is unrecoverable once pushed.
 
 ```bash
 uv venv
 source .venv/bin/activate
 uv pip install -e ".[dev]"
+pre-commit install
+pre-commit run --all-files
 pytest
 ```
+
+Hooks: `ruff` (lint and format), `mypy` on the contract modules,
+`check-added-large-files`, `detect-private-key`, `gitleaks`, plus two custom
+checks:
+
+- **`no-real-addresses`** rejects anything shaped like a US street address
+  outside the allowlisted fixture path. Adding to the allowlist is deliberate
+  and shows up in review.
+- **`no-local-config`** rejects hostnames, connection strings, IP addresses,
+  and suppression-list content outside the example configuration directory.
+
+Neither is a security control. They are a tripwire against pasting a real
+address into a test while debugging.
+
+CI runs `pre-commit run --all-files` so that contributors without hooks
+installed cannot bypass them, `pytest` on supported Python versions, and a
+`contract` job asserting the `GeocodeResult` and `ParsedAddress` field sets.
+The result type is what every downstream consumer binds to; a silent field
+rename surfaces weeks later in the geocode cache.

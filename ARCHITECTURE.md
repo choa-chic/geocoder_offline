@@ -1,6 +1,6 @@
 # Architecture
 
-Version: 1.0.0
+Version: 1.1.0
 Last Updated: 2026-09-19 09:47 EDT
 
 Target architecture for this library. This document describes where the code is
@@ -170,11 +170,39 @@ design from three upstreams, none of which are modified here:
 - [`postgis/postgis`](https://github.com/postgis/postgis): table-driven
   `standardize_address()` and `geocode()` candidate ranking
 
+## Parser selection
+
+Three parser backends are planned, and the choice is evidence-based rather
+than preferential. All four candidates were measured against a labeled
+hard-case corpus:
+
+| Backend | Role |
+|---|---|
+| `usaddress_like` | Default. Led on parse accuracy against a USPS-conventional reading |
+| `postgis_like` | Production-parity path. Reproduces PostGIS `standardize_address()` behavior, including its quirks, for agreement with data geocoded by a PostGIS geocoder |
+| `degauss_like` | Required by the DeGAUSS backend, whose matching engine is tuned to its own parser's output. Not a general-purpose parser |
+
+Three things that measurement established and inspection would not have:
+
+- **Parsing is not the throughput bottleneck.** The slowest candidate handles
+  10M addresses in well under an hour. Choose on accuracy.
+- **Well-formed addresses do not discriminate.** Agreement between parsers
+  runs above 91% on clean input and falls sharply on hard cases. Any
+  evaluation corpus made of tidy addresses will wrongly conclude the choice
+  does not matter.
+- **PostGIS's stock rules fold the pre-directional into `house_num`** and
+  return nothing at all when there is no house number. Normalizing that away
+  is the right call for a general parser and the wrong call for parity with
+  existing geocoded data, which is why both forms exist.
+
 ## Conventions
 
 Python 3.12+, uv, `pyproject.toml`. polars for tabular data, click for CLI,
 FastAPI for HTTP, pytest for tests. Type hints throughout with
 `from __future__ import annotations`.
+
+Pre-commit and CI gate every change, including two custom content checks that
+exist because this repository is public. See `AGENTS.md`.
 
 No real addresses in this repository. Test fixtures use synthetic addresses or
 public landmarks. Deployment-specific configuration, including any
